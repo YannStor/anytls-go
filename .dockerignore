@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+!USAGE.md
+docs/
+examples/
+
+# Build artifacts
+bin/
+dist/
+build/
+*.exe
+*.tar.gz
+*.zip
+
+# Dependencies
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Test files
+*_test.go
+coverage.out
+
+# CI/CD
+.github/
+.travis.yml
+.gitlab-ci.yml
+
+# Docker
+Dockerfile*
+.dockerignore
+```

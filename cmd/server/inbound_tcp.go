@@ -17,14 +17,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func handleTcpConnection(ctx context.Context, c net.Conn, s *myServer) {
+func handleTcpConnection(ctx context.Context, c net.Conn, server *myServer) {
 	defer func() {
 		if r := recover(); r != nil {
 			logrus.Errorln("[BUG]", r, string(debug.Stack()))
 		}
 	}()
 
-	c = tls.Server(c, s.tlsConfig)
+	c = tls.Server(c, server.tlsConfig)
 	defer c.Close()
 
 	b := buf.NewPacket()
@@ -74,9 +74,9 @@ func handleTcpConnection(ctx context.Context, c net.Conn, s *myServer) {
 		}
 
 		if strings.Contains(destination.String(), "udp-over-tcp.arpa") {
-			proxyOutboundUoT(ctx, stream, destination)
+			proxyOutboundUoT(ctx, stream, destination, server)
 		} else {
-			proxyOutboundTCP(ctx, stream, destination)
+			proxyOutboundTCP(ctx, stream, destination, server)
 		}
 	}, &padding.DefaultPaddingFactory)
 	session.Run()

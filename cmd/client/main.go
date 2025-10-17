@@ -16,6 +16,13 @@ import (
 
 var passwordSha256 []byte
 
+// 版本信息（构建时注入）
+var (
+	Version   = "dev"
+	BuildTime = "unknown"
+	GitCommit = "unknown"
+)
+
 func main() {
 	listen := flag.String("l", "127.0.0.1:1080", "socks5 listen port")
 	serverAddr := flag.String("s", "127.0.0.1:8443", "server address")
@@ -37,6 +44,7 @@ func main() {
 	passwordSha256 = sum[:]
 
 	logrus.Infoln("[Client]", util.ProgramVersionName)
+	logrus.Infof("[Client] Version: %s, Build: %s, Commit: %s", Version, BuildTime, GitCommit)
 	logrus.Infoln("[Client] socks5/http", *listen, "=>", *serverAddr)
 
 	listener, err := net.Listen("tcp", *listen)

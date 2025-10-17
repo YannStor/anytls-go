@@ -1,5 +1,108 @@
-/dist
-/cmd/client/client
-/cmd/server/server
+# Binaries for programs and plugins
 *.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+build/
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Go workspace file
+go.work
+
+# Dependency directories (remove the comment below to include it)
+vendor/
+
+# Go modules cache
+go.sum
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS generated files
+*.tmp
+*.temp
+*.log
+logs/
+
+# Essential documentation (keep these)
+README.md
+CHANGELOG.md
+LICENSE
+
+# Additional documentation (exclude from main repo, keep in source)
+*.md
+!README.md
+!CHANGELOG.md
+!LICENSE
+docs/
+examples/
+
+# CI/CD files (keep only essential)
+.github/workflows/release.yml
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Docker files
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# Build scripts and configurations
+build*.sh
+Makefile
+*.yml
+*.yaml
+!.github/workflows/release.yml
+
+# Coverage reports
+coverage.out
+coverage.html
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Local development
+.local/
+cache/
+
+# Test files
+*_test.go
+*_test_data/
+
+# Backup files
+*.bak
+*.backup
+
+# Temporary files
+*.pid
+*.seed
+
+# Archives
+*.tar.gz
 *.zip
+*.rar
+*.7z
+
+# Configuration files with sensitive data
+config/
+*.conf
+*.config
+*.json
+!package.json
