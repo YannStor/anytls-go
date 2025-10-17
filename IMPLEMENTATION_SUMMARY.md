@@ -112,7 +112,7 @@
 
 ### 测试运行
 ```bash
-go test ./proxy/dialer -v
+go test ./proxy/simpledialer -v
 ```
 
 ## 🏗️ 架构设计

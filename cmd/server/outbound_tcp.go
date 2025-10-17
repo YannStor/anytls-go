@@ -1,9 +1,8 @@
 package main
 
 import (
-	"anytls/proxy/dialer"
+	"anytls/proxy/simpledialer"
 	"context"
-	"fmt"
 	"net"
 
 	"github.com/sagernet/sing/common/bufio"
@@ -15,32 +14,53 @@ import (
 )
 
 func proxyOutboundTCP(ctx context.Context, conn net.Conn, destination M.Socksaddr, server *myServer) error {
+	logrus.Debugf("ProxyOutboundTCP: New connection from %s to %s", conn.RemoteAddr(), destination)
+
+	// 获取拨号器
 	dialerInterface := server.GetDialer()
-	var c net.Conn
+
+	var outboundConn net.Conn
 	var err error
 
-	// 尝试转换为 ContextDialer
-	if contextDialer, ok := dialerInterface.(interface {
-		DialContext(context.Context, string, string) (net.Conn, error)
-	}); ok {
-		c, err = contextDialer.DialContext(ctx, "tcp", destination.String())
+	if proxyDialer, ok := dialerInterface.(*simpledialer.SimpleDialer); ok {
+		// 使用简化代理拨号器
+		outboundConn, err = proxyDialer.DialContext(ctx, "tcp", destination.String())
+		if err != nil {
+			logrus.Debugln("TCP proxy failed:", err)
+			return E.Errors(err, N.ReportHandshakeFailure(conn, err))
+		}
+		logrus.Debugln("Using TCP proxy for:", destination.String(), "via", proxyDialer.GetCurrentProxy())
 	} else if dialer, ok := dialerInterface.(net.Dialer); ok {
-		c, err = dialer.Dial("tcp", destination.String())
+		// 使用系统拨号器
+		outboundConn, err = dialer.DialContext(ctx, "tcp", destination.String())
+		if err != nil {
+			logrus.Debugln("Direct dial failed:", err)
+			return E.Errors(err, N.ReportHandshakeFailure(conn, err))
+		}
+		logrus.Debugln("Using direct TCP for:", destination.String())
 	} else {
-		err = fmt.Errorf("unsupported dialer type")
-	}
-	if err != nil {
-		logrus.Debugln("proxyOutboundTCP DialContext:", err)
-		err = E.Errors(err, N.ReportHandshakeFailure(conn, err))
-		return err
+		// 回退到默认拨号
+		outboundConn, err = net.DialTCP("tcp", nil, &net.TCPAddr{
+			IP:   net.ParseIP(destination.Addr.String()),
+			Port: int(destination.Port),
+		})
+		if err != nil {
+			logrus.Debugln("Default dial failed:", err)
+			return E.Errors(err, N.ReportHandshakeFailure(conn, err))
+		}
+		logrus.Debugln("Using default TCP for:", destination.String())
 	}
 
+	// 报告握手成功
 	err = N.ReportHandshakeSuccess(conn)
 	if err != nil {
+		outboundConn.Close()
 		return err
 	}
 
-	return bufio.CopyConn(ctx, conn, c)
+	// 开始数据转发
+	defer outboundConn.Close()
+	return bufio.CopyConn(ctx, conn, outboundConn)
 }
 
 func proxyOutboundUoT(ctx context.Context, conn net.Conn, destination M.Socksaddr, server *myServer) error {
@@ -54,20 +74,15 @@ func proxyOutboundUoT(ctx context.Context, conn net.Conn, destination M.Socksadd
 	dialerInterface := server.GetDialer()
 	var c net.PacketConn
 
-	if proxyDialer, ok := dialerInterface.(*dialer.ProxyDialer); ok {
-		// 尝试通过代理创建 UDP 连接
-		udpConn, err := proxyDialer.DialContext(ctx, "udp", destination.String())
+	if proxyDialer, ok := dialerInterface.(*simpledialer.SimpleDialer); ok {
+		// 尝试通过简化代理拨号器创建 UDP 连接
+		udpConn, err := proxyDialer.DialContext(ctx, "tcp", destination.String()) // 简化拨号器只支持 TCP
 		if err == nil {
-			// 代理成功，将 net.Conn 转换为 PacketConnnn
-			if packetConn, ok := udpConn.(net.PacketConn); ok {
-				c = packetConn
-			} else {
-				// 如果不是 PacketConn，创建适配器
-				c = &ConnToPacketConnAdapter{Conn: udpConn}
-			}
-			logrus.Debugln("Using UDP proxy for UoT:", destination.String())
+			// 对于 UDP over TCP，我们使用 TCP 连接
+			c = &ConnToPacketConnAdapter{Conn: udpConn}
+			logrus.Debugln("Using TCP proxy for UoT:", destination.String(), "via", proxyDialer.GetCurrentProxy())
 		} else {
-			logrus.Debugln("UDP proxy failed, using local UDP:", err)
+			logrus.Debugln("TCP proxy failed for UoT, using local UDP:", err)
 			// 代理失败，回退到本地 UDP
 			c, err = net.ListenPacket("udp", "")
 			if err != nil {

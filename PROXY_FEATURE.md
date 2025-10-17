@@ -102,10 +102,10 @@
 
 ### 核心组件
 
-1. **ProxyDialer** (`proxy/dialer/proxy_dialer.go`)
-   - 统一的代理拨号器接口
+1. **SimpleDialer** (`proxy/simpledialer/dialer.go`)
+   - 简化的代理拨号器接口
    - 支持多种代理协议
-   - 实现回退机制
+   - 实现故障转移和回切机制
 
 2. **HTTPProxyDialer** 
    - HTTP/HTTPS 代理的具体实现
@@ -204,7 +204,7 @@
 
 运行测试：
 ```bash
-go test ./proxy/dialer -v
+go test ./proxy/simpledialer -v
 ```
 
 ## 安全注意事项

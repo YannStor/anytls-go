@@ -3,11 +3,14 @@
 .gitignore
 .gitattributes
 
-# Documentation
+# Documentation (keep essential ones)
 *.md
 !README.md
 !USAGE.md
+!PROXY_FEATURE.md
 docs/
+
+# Examples (keep for reference)
 examples/
 
 # Build artifacts

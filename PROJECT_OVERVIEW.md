@@ -101,7 +101,7 @@ anytls-go/
 
 ```bash
 # 运行单元测试
-go test ./proxy/dialer -v
+go test ./proxy/simpledialer -v
 
 # 构建测试
 ./build.sh
