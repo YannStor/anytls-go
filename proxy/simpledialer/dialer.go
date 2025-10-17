@@ -5,14 +5,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
-
-	"fmt"
 
 	"golang.org/x/net/proxy"
 )
@@ -25,6 +24,7 @@ type ProxyNode struct {
 	LastUsed time.Time
 	Fails    int
 	IsDirect bool // 是否为直连
+	Index    int  // 在列表中的原始位置，用于优先级回切
 }
 
 // SimpleDialer 简化的代理拨号器
@@ -62,6 +62,7 @@ func NewSimpleDialer(proxyList string) (*SimpleDialer, error) {
 				Dialer:   &net.Dialer{Timeout: time.Second * 30},
 				Healthy:  true,
 				IsDirect: true,
+				Index:    len(sd.nodes),
 			})
 			continue
 		}
@@ -97,6 +98,7 @@ func NewSimpleDialer(proxyList string) (*SimpleDialer, error) {
 			Dialer:   dialer,
 			Healthy:  true,
 			IsDirect: false,
+			Index:    len(sd.nodes),
 		})
 
 		// 第一个节点作为当前节点
