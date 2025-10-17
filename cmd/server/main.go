@@ -168,7 +168,7 @@ func main() {
 	// 取消上下文，停止接受新连接
 	cancel()
 
-	// 等待所有连接完成（最多等待30秒）
+	//等待所有连接完成（最多等待 30 秒）
 	shutdownTimeout := time.NewTimer(30 * time.Second)
 	defer shutdownTimeout.Stop()
 

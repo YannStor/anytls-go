@@ -42,12 +42,24 @@ logs/
 README.md
 CHANGELOG.md
 LICENSE
+USAGE.md
+PROXY_FEATURE.md
+IMPLEMENTATION_SUMMARY.md
+PROJECT_OVERVIEW.md
+CHECKLIST.md
+RELEASE.md
 
 # Additional documentation (exclude from main repo, keep in source)
 *.md
 !README.md
 !CHANGELOG.md
 !LICENSE
+!USAGE.md
+!PROXY_FEATURE.md
+!IMPLEMENTATION_SUMMARY.md
+!PROJECT_OVERVIEW.md
+!CHECKLIST.md
+!RELEASE.md
 docs/
 examples/
 

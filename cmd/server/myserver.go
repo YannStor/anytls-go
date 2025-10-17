@@ -31,25 +31,25 @@ func NewMyServer(tlsConfig *tls.Config, dialURL string, dialFallback bool, healt
 		// 配置健康检查参数
 		urls := s.parseHealthCheckURLs(healthCheckURLs)
 		if healthCheckInterval == 0 {
-			healthCheckInterval = time.Second * 30 // 默认30秒
+			healthCheckInterval = time.Second * 30 //默认 30 秒
 		}
 		if healthCheckTimeout == 0 {
-			healthCheckTimeout = time.Second * 10 // 默认10秒
+			healthCheckTimeout = time.Second * 10 //默认 10 秒
 		}
 		if healthCheckThreshold == 0 {
-			healthCheckThreshold = 1 // 默认1个成功即可
+			healthCheckThreshold = 1 // 默认 1 个成功即可
 		}
 		if dataTransferIdle == 0 {
-			dataTransferIdle = time.Minute * 5 // 默认5分钟
+			dataTransferIdle = time.Minute * 5 // 默认 5 分钟
 		}
 		if connectTimeout == 0 {
-			connectTimeout = time.Second * 30 // 默认30秒
+			connectTimeout = time.Second * 30 // 默认 30 秒
 		}
 		if readTimeout == 0 {
-			readTimeout = time.Second * 60 // 默认60秒
+			readTimeout = time.Second * 60 // 默认 60 秒
 		}
 		if writeTimeout == 0 {
-			writeTimeout = time.Second * 60 // 默认60秒
+			writeTimeout = time.Second * 60 // 默认 60 秒
 		}
 
 		proxyDialer.SetHealthCheckConfigAdvanced(urls, healthCheckInterval, healthCheckTimeout, healthCheckThreshold, dataTransferIdle)
@@ -70,10 +70,10 @@ func NewMyServer(tlsConfig *tls.Config, dialURL string, dialFallback bool, healt
 	return s
 }
 
-// parseHealthCheckURLs 解析健康检查URL列表
+// parseHealthCheckURLs 解析健康检查 URL 列表
 func (s *myServer) parseHealthCheckURLs(urlsStr string) []string {
 	if urlsStr == "" {
-		// 返回默认URL列表
+		// 返回默认 URL 列表
 		return []string{
 			"https://cp.cloudflare.com/",
 			"https://connectivitycheck.gstatic.com/generate_204",
@@ -82,7 +82,7 @@ func (s *myServer) parseHealthCheckURLs(urlsStr string) []string {
 		}
 	}
 
-	// 解析用户提供的URL列表
+	// 解析用户提供的 URL 列表
 	urls := strings.Split(urlsStr, ",")
 	var result []string
 	for _, url := range urls {

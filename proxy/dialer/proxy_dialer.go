@@ -68,7 +68,7 @@ func NewProxyDialer(dialURL string, fallback bool) (*ProxyDialer, error) {
 		return nil, fmt.Errorf("dial URL cannot be empty")
 	}
 
-	// 解析代理URL列表
+	// 解析代理 URL 列表
 	proxyURLs := strings.Split(dialURL, ",")
 	var proxyNodes []*ProxyNode
 
@@ -103,7 +103,7 @@ func NewProxyDialer(dialURL string, fallback bool) (*ProxyDialer, error) {
 			URL:       proxyURL,
 			Healthy:   true, // 初始假设健康
 			FailCount: 0,
-			Index:     len(proxyNodes), // 记录原始位置（从0开始）
+			Index:     len(proxyNodes), // 记录原始位置（从 0 开始）
 			IsDirect:  scheme == "direct",
 		}
 
@@ -132,7 +132,7 @@ func NewProxyDialer(dialURL string, fallback bool) (*ProxyDialer, error) {
 		},
 		proxyNodes:     proxyNodes,
 		currentNode:    0,
-		fallback:       fallback, // 保留参数用于兼容性，但实际功能由DIRECT节点实现
+		fallback:       fallback, // 保留参数用于兼容性，但实际功能由 DIRECT 节点实现
 		connectTimeout: time.Second * 30,
 		readTimeout:    time.Second * 60,
 		writeTimeout:   time.Second * 60,
@@ -144,7 +144,7 @@ func NewProxyDialer(dialURL string, fallback bool) (*ProxyDialer, error) {
 		return nil, fmt.Errorf("failed to initialize proxy dialers: %w", err)
 	}
 
-	pd.checkInterval = time.Second * 30 // 默认30秒检查一次
+	pd.checkInterval = time.Second * 30 // 默认 30 秒检查一次
 
 	// 初始化默认监测配置
 	pd.healthCheckURLs = []string{
@@ -158,7 +158,7 @@ func NewProxyDialer(dialURL string, fallback bool) (*ProxyDialer, error) {
 
 	// 初始化数据传输感知
 	pd.lastSuccessTime = time.Now()
-	pd.dataTransferIdle = time.Minute * 5 // 5分钟无数据传输才进行健康检查
+	pd.dataTransferIdle = time.Minute * 5 // 5 分钟无数据传输才进行健康检查
 
 	return pd, nil
 }
@@ -267,7 +267,7 @@ func (pd *ProxyDialer) findHealthyProxy() *ProxyNode {
 
 // DialContext 实现网络拨号
 func (pd *ProxyDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
-	// 支持TCP和UDP
+	// 支持 TCP 和 UDP
 	if network != "tcp" && network != "tcp4" && network != "tcp6" &&
 		network != "udp" && network != "udp4" && network != "udp6" {
 		return nil, fmt.Errorf("unsupported network: %s", network)
@@ -391,7 +391,7 @@ func (pd *ProxyDialer) dialViaNode(ctx context.Context, network, address string,
 	} else if network == "udp" || network == "udp4" || network == "udp6" {
 		conn, err := pd.dialUDPViaNode(ctx, network, address, node)
 		if err == nil {
-			// UDP连接也使用MonitoredConn包装，记录数据传输
+			// UDP 连接也使用 MonitoredConn 包装，记录数据传输
 			return &MonitoredConn{Conn: conn, dialer: pd}, nil
 		}
 		return conn, err
@@ -399,7 +399,7 @@ func (pd *ProxyDialer) dialViaNode(ctx context.Context, network, address string,
 	return nil, fmt.Errorf("unsupported network: %s", network)
 }
 
-// dialTCPViaNode 通过指定代理节点连接TCP
+// dialTCPViaNode 通过指定代理节点连接 TCP
 func (pd *ProxyDialer) dialTCPViaNode(ctx context.Context, network, address string, node *ProxyNode) (net.Conn, error) {
 	if node.IsDirect {
 		// 直连
@@ -414,25 +414,25 @@ func (pd *ProxyDialer) dialTCPViaNode(ctx context.Context, network, address stri
 	return nil, fmt.Errorf("unsupported proxy dialer type")
 }
 
-// dialUDPViaNode 通过指定代理节点连接UDP
+// dialUDPViaNode 通过指定代理节点连接 UDP
 func (pd *ProxyDialer) dialUDPViaNode(ctx context.Context, network, address string, node *ProxyNode) (net.Conn, error) {
 	if node.IsDirect {
-		// 直连UDP
+		// 直连 UDP
 		return net.DialUDP(network, nil, resolveUDPAddr(network, address))
 	}
 
-	// 只有SOCKS5支持UDP代理
+	// 只有 SOCKS5 支持 UDP 代理
 	if strings.ToLower(node.URL.Scheme) != "socks5" {
 		return nil, fmt.Errorf("UDP proxy only supported with SOCKS5")
 	}
 
-	// 对于SOCKS5 UDP，我们需要建立TCP连接到代理服务器，然后发送UDP ASSOCIATE请求
+	// 对于 SOCKS5 UDP，我们需要建立 TCP 连接到代理服务器，然后发送 UDP ASSOCIATE 请求
 	tcpConn, err := pd.dialTCPViaNode(ctx, "tcp", node.URL.Host, node)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to SOCKS5 proxy for UDP associate: %w", err)
 	}
 
-	// 实现SOCKS5 UDP ASSOCIATE
+	// 实现 SOCKS5 UDP ASSOCIATE
 	udpConn, err := pd.socks5UDPAssociate(ctx, tcpConn, address)
 	if err != nil {
 		tcpConn.Close()
@@ -489,7 +489,7 @@ func (pd *ProxyDialer) recordNodeFailure(node *ProxyNode) {
 	node.FailCount++
 	node.LastCheckTime = time.Now()
 
-	// 连续失败3次以上，标记节点为不健康
+	// 连续失败 3 次以上，标记节点为不健康
 	if node.FailCount >= 3 {
 		node.Healthy = false
 	}
@@ -559,7 +559,7 @@ func (pd *ProxyDialer) checkNodeHealth(node *ProxyNode) bool {
 		return true
 	}
 
-	// 使用自定义的URL列表来检查代理健康状态
+	// 使用自定义的 URL 列表来检查代理健康状态
 	successCount := 0
 
 	for _, testURL := range pd.healthCheckURLs {
@@ -574,14 +574,14 @@ func (pd *ProxyDialer) checkNodeHealth(node *ProxyNode) bool {
 	return false
 }
 
-// checkURLHealthWithNode 通过指定代理节点检查URL健康状态
+// checkURLHealthWithNode 通过指定代理节点检查 URL 健康状态
 func (pd *ProxyDialer) checkURLHealthWithNode(testURL string, node *ProxyNode) bool {
 	if node.IsDirect {
 		// 对于直连，简单测试网络连接即可
 		ctx, cancel := context.WithTimeout(context.Background(), pd.maxCheckTimeout)
 		defer cancel()
 
-		// 解析URL
+		// 解析 URL
 		parsedURL, err := url.Parse(testURL)
 		if err != nil {
 			return false
@@ -608,7 +608,7 @@ func (pd *ProxyDialer) checkURLHealthWithNode(testURL string, node *ProxyNode) b
 	ctx, cancel := context.WithTimeout(context.Background(), pd.maxCheckTimeout)
 	defer cancel()
 
-	// 解析URL
+	// 解析 URL
 	parsedURL, err := url.Parse(testURL)
 	if err != nil {
 		return false
@@ -630,9 +630,9 @@ func (pd *ProxyDialer) checkURLHealthWithNode(testURL string, node *ProxyNode) b
 	}
 	defer conn.Close()
 
-	// 发送HTTP请求
+	// 发送 HTTP 请求
 	if parsedURL.Scheme == "https" {
-		// 简单的HTTPS检查
+		// 简单的 HTTPS 检查
 		tlsConn := tls.Client(conn, &tls.Config{
 			InsecureSkipVerify: true,
 		})
@@ -642,7 +642,7 @@ func (pd *ProxyDialer) checkURLHealthWithNode(testURL string, node *ProxyNode) b
 		conn = tlsConn
 	}
 
-	// 发送简单的HTTP请求
+	// 发送简单的 HTTP 请求
 	req := fmt.Sprintf("GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: anytls-proxy-check\r\nConnection: close\r\n\r\n",
 		parsedURL.RequestURI(), parsedURL.Host)
 
@@ -664,7 +664,7 @@ func (pd *ProxyDialer) checkURLHealthWithNode(testURL string, node *ProxyNode) b
 		strings.Contains(responseStr, "Connection established") || len(response) > 0
 }
 
-// checkURLHealth 检查单个URL的健康状态
+// checkURLHealth 检查单个 URL 的健康状态
 func (pd *ProxyDialer) checkURLHealth(testURL string) bool {
 	// 使用当前代理节点检查
 	currentNode := pd.getCurrentNode()
@@ -740,7 +740,7 @@ func (pd *ProxyDialer) GetAllProxyHealth() []ProxyHealth {
 	return healthList
 }
 
-// GetCurrentProxyURL 获取当前使用的代理URL
+// GetCurrentProxyURL 获取当前使用的代理 URL
 func (pd *ProxyDialer) GetCurrentProxyURL() string {
 	pd.mu.RLock()
 	defer pd.mu.RUnlock()
@@ -837,7 +837,7 @@ type MonitoredConn struct {
 	dialer *ProxyDialer
 }
 
-// Read 实现net.Conn的Read方法，监控数据读取
+// Read 实现 net.Conn 的 Read 方法，监控数据读取
 func (mc *MonitoredConn) Read(b []byte) (n int, err error) {
 	n, err = mc.Conn.Read(b)
 	if n > 0 && err == nil {
@@ -850,7 +850,7 @@ func (mc *MonitoredConn) Read(b []byte) (n int, err error) {
 	return n, err
 }
 
-// Write 实现net.Conn的Write方法，监控数据写入
+// Write 实现 net.Conn 的 Write 方法，监控数据写入
 func (mc *MonitoredConn) Write(b []byte) (n int, err error) {
 	n, err = mc.Conn.Write(b)
 	if n > 0 && err == nil {
@@ -863,13 +863,13 @@ func (mc *MonitoredConn) Write(b []byte) (n int, err error) {
 	return n, err
 }
 
-// MonitoredPacketConn 监控数据传输的PacketConn包装器
+// MonitoredPacketConn 监控数据传输的 PacketConn 包装器
 type MonitoredPacketConn struct {
 	net.PacketConn
 	dialer *ProxyDialer
 }
 
-// ReadFrom 实现net.PacketConn的ReadFrom方法，监控数据读取
+// ReadFrom 实现 net.PacketConn 的 ReadFrom 方法，监控数据读取
 func (mpc *MonitoredPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 	n, addr, err = mpc.PacketConn.ReadFrom(p)
 	if n > 0 && err == nil {
@@ -882,7 +882,7 @@ func (mpc *MonitoredPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err er
 	return n, addr, err
 }
 
-// WriteTo 实现net.PacketConn的WriteTo方法，监控数据写入
+// WriteTo 实现 net.PacketConn 的 WriteTo 方法，监控数据写入
 func (mpc *MonitoredPacketConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
 	n, err = mpc.PacketConn.WriteTo(p, addr)
 	if n > 0 && err == nil {
@@ -895,9 +895,7 @@ func (mpc *MonitoredPacketConn) WriteTo(p []byte, addr net.Addr) (n int, err err
 	return n, err
 }
 
-// UDP连接监控已简化，不再需要PacketConnAdapter
-
-// resolveUDPAddr 解析UDP地址
+// resolveUDPAddr 解析 UDP 地址
 func resolveUDPAddr(network, address string) *net.UDPAddr {
 	if addr, err := net.ResolveUDPAddr(network, address); err == nil {
 		return addr
@@ -905,7 +903,7 @@ func resolveUDPAddr(network, address string) *net.UDPAddr {
 	// 如果解析失败，尝试简单的分割
 	host, port, err := net.SplitHostPort(address)
 	if err != nil {
-		return &net.UDPAddr{Port: 53} // 默认DNS端口
+		return &net.UDPAddr{Port: 53} // 默认 DNS 端口
 	}
 	if port == "" {
 		port = "53"
@@ -913,7 +911,7 @@ func resolveUDPAddr(network, address string) *net.UDPAddr {
 	return &net.UDPAddr{IP: net.ParseIP(host), Port: 0} // 让系统选择端口
 }
 
-// CreatePacketConn 创建PacketConn连接
+// CreatePacketConn 创建 PacketConn 连接
 func CreatePacketConn(network, address string) (net.PacketConn, error) {
 	if network == "udp" || network == "udp4" || network == "udp6" {
 		return net.ListenPacket(network, address)
@@ -926,12 +924,12 @@ func (pd *ProxyDialer) Dial(network, address string) (net.Conn, error) {
 	return pd.DialContext(context.Background(), network, address)
 }
 
-// socks5UDPAssociate 实现SOCKS5 UDP ASSOCIATE
+// socks5UDPAssociate 实现 SOCKS5 UDP ASSOCIATE
 func (pd *ProxyDialer) socks5UDPAssociate(ctx context.Context, tcpConn net.Conn, targetAddr string) (net.Conn, error) {
 	// SOCKS5 UDP ASSOCIATE 实现
-	// 这里需要实现完整的SOCKS5 UDP ASSOCIATE协议
+	// 这里需要实现完整的 SOCKS5 UDP ASSOCIATE 协议
 
-	// 1. 发送SOCKS5握手
+	// 1. 发送 SOCKS5 握手
 	_, err := tcpConn.Write([]byte{0x05, 0x01, 0x00}) // VER, NMETHODS, METHOD
 	if err != nil {
 		return nil, fmt.Errorf("SOCKS5 handshake failed: %w", err)
@@ -948,8 +946,8 @@ func (pd *ProxyDialer) socks5UDPAssociate(ctx context.Context, tcpConn net.Conn,
 		return nil, fmt.Errorf("SOCKS5 handshake not accepted")
 	}
 
-	// 3. 发送UDP ASSOCIATE请求
-	// 构造请求: VER(1) + CMD(1) + RSV(1) + ATYP(1) + DST.ADDR(var) + DST.PORT(2)
+	// 3. 发送 UDP ASSOCIATE 请求
+	// 构造请求：VER(1) + CMD(1) + RSV(1) + ATYP(1) + DST.ADDR(var) + DST.PORT(2))
 	request := []byte{0x05, 0x03, 0x00, 0x01} // VER, CMD(UDP ASSOCIATE), RSV, ATYP(IPv4)
 
 	// 添加目标地址 0.0.0.0:0 (让代理服务器选择)
@@ -961,7 +959,7 @@ func (pd *ProxyDialer) socks5UDPAssociate(ctx context.Context, tcpConn net.Conn,
 		return nil, fmt.Errorf("SOCKS5 UDP ASSOCIATE request failed: %w", err)
 	}
 
-	// 4. 读取UDP ASSOCIATE响应
+	// 4. 读取 UDP ASSOCIATE 响应
 	response = make([]byte, 10) // 最小响应长度
 	_, err = tcpConn.Read(response)
 	if err != nil {
@@ -972,7 +970,7 @@ func (pd *ProxyDialer) socks5UDPAssociate(ctx context.Context, tcpConn net.Conn,
 		return nil, fmt.Errorf("SOCKS5 UDP ASSOCIATE failed: status %d", response[1])
 	}
 
-	// 5. 解析UDP代理服务器地址
+	// 5. 解析 UDP 代理服务器地址
 	var udpProxyAddr string
 	if response[3] == 0x01 { // IPv4
 		udpProxyAddr = fmt.Sprintf("%d.%d.%d.%d:%d",
@@ -982,13 +980,13 @@ func (pd *ProxyDialer) socks5UDPAssociate(ctx context.Context, tcpConn net.Conn,
 		return nil, fmt.Errorf("unsupported address type in UDP ASSOCIATE response")
 	}
 
-	// 6. 创建UDP连接到代理服务器
+	// 6. 创建 UDP 连接到代理服务器
 	udpConn, err := net.Dial("udp", udpProxyAddr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial UDP proxy: %w", err)
 	}
 
-	// 返回一个特殊的连接，它会处理SOCKS5 UDP包格式
+	// 返回一个特殊的连接，它会处理 SOCKS5 UDP 包格式
 	return &Socks5UDPConn{
 		udpConn:    udpConn.(*net.UDPConn),
 		tcpConn:    tcpConn,
@@ -996,33 +994,33 @@ func (pd *ProxyDialer) socks5UDPAssociate(ctx context.Context, tcpConn net.Conn,
 	}, nil
 }
 
-// Socks5UDPConn SOCKS5 UDP连接包装器
+// Socks5UDPConn SOCKS5 UDP 连接包装器
 type Socks5UDPConn struct {
 	udpConn    *net.UDPConn
 	tcpConn    net.Conn
 	targetAddr string
 }
 
-// Read 实现net.Conn的Read方法
+// Read 实现 net.Conn 的 Read 方法
 func (c *Socks5UDPConn) Read(b []byte) (n int, err error) {
-	// 读取UDP数据包
+	// 读取 UDP 数据包
 	n, _, err = c.udpConn.ReadFromUDP(b)
 	if err != nil {
 		return n, err
 	}
 
-	// 解析SOCKS5 UDP包格式并提取实际数据
-	// SOCKS5 UDP包格式: RSV(2) + FRAG(1) + ATYP(1) + DST.ADDR(var) + DST.PORT(2) + DATA(var)
+	// 解析 SOCKS5 UDP 包格式并提取实际数据
+	// SOCKS5 UDP 包格式：RSV(2) + FRAG(1) + ATYP(1) + DST.ADDR(var) + DST.PORT(2) + DATA(var)
 	if n < 10 { // 最小包头长度
 		return n, fmt.Errorf("invalid SOCKS5 UDP packet")
 	}
 
-	// 跳过SOCKS5 UDP包头，返回实际数据
-	dataStart := 10   // IPv4的最小包头长度
+	// 跳过 SOCKS5 UDP 包头，返回实际数据
+	dataStart := 10   // IPv4 的最小包头长度
 	if b[3] == 0x03 { // 域名
 		dataStart = 5 + int(b[4]) + 2 // 域名长度 + 端口
 	} else if b[3] == 0x04 { // IPv6
-		dataStart = 19 // IPv6地址长度 + 端口
+		dataStart = 19 // IPv6 地址长度 + 端口
 	}
 
 	// 移动数据到缓冲区开头
@@ -1030,9 +1028,9 @@ func (c *Socks5UDPConn) Read(b []byte) (n int, err error) {
 	return n - dataStart, nil
 }
 
-// Write 实现net.Conn的Write方法
+// Write 实现 net.Conn 的 Write 方法
 func (c *Socks5UDPConn) Write(b []byte) (n int, err error) {
-	// 构造SOCKS5 UDP包
+	// 构造 SOCKS5 UDP 包
 	// RSV(2) + FRAG(1) + ATYP(1) + DST.ADDR(var) + DST.PORT(2) + DATA(var)
 	packet := make([]byte, 0, 10+len(b))
 	packet = append(packet, 0x00, 0x00) // RSV
@@ -1071,37 +1069,37 @@ func (c *Socks5UDPConn) Write(b []byte) (n int, err error) {
 	// 添加数据
 	packet = append(packet, b...)
 
-	// 发送UDP包
+	// 发送 UDP 包
 	return c.udpConn.Write(packet)
 }
 
-// Close 实现net.Conn的Close方法
+// Close 实现 net.Conn 的 Close 方法
 func (c *Socks5UDPConn) Close() error {
 	c.udpConn.Close()
 	return c.tcpConn.Close()
 }
 
-// LocalAddr 实现net.Conn的LocalAddr方法
+// LocalAddr 实现 net.Conn 的 LocalAddr 方法
 func (c *Socks5UDPConn) LocalAddr() net.Addr {
 	return c.udpConn.LocalAddr()
 }
 
-// RemoteAddr 实现net.Conn的RemoteAddr方法
+// RemoteAddr 实现 net.Conn 的 RemoteAddr 方法
 func (c *Socks5UDPConn) RemoteAddr() net.Addr {
 	return c.udpConn.RemoteAddr()
 }
 
-// SetDeadline 实现net.Conn的SetDeadline方法
+// SetDeadline 实现 net.Conn 的 SetDeadline 方法
 func (c *Socks5UDPConn) SetDeadline(t time.Time) error {
 	return c.udpConn.SetDeadline(t)
 }
 
-// SetReadDeadline 实现net.Conn的SetReadDeadline方法
+// SetReadDeadline 实现 net.Conn 的 SetReadDeadline 方法
 func (c *Socks5UDPConn) SetReadDeadline(t time.Time) error {
 	return c.udpConn.SetReadDeadline(t)
 }
 
-// SetWriteDeadline 实现net.Conn的SetWriteDeadline方法
+// SetWriteDeadline 实现 net.Conn 的 SetWriteDeadline 方法
 func (c *Socks5UDPConn) SetWriteDeadline(t time.Time) error {
 	return c.udpConn.SetWriteDeadline(t)
 }
