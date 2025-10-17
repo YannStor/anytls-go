@@ -22,6 +22,7 @@ type ProxyNode struct {
 	Healthy  bool
 	LastUsed time.Time
 	Fails    int
+	IsDirect bool // 是否为直连
 }
 
 // SimpleDialer 简化的代理拨号器
@@ -55,9 +56,10 @@ func NewSimpleDialer(proxyList string) (*SimpleDialer, error) {
 		// 处理 DIRECT
 		if strings.ToUpper(proxyURL) == "DIRECT" {
 			sd.nodes = append(sd.nodes, &ProxyNode{
-				URL:     &url.URL{Scheme: "direct", Host: "direct"},
-				Dialer:  &net.Dialer{Timeout: time.Second * 30},
-				Healthy: true,
+				URL:      &url.URL{Scheme: "direct", Host: "direct"},
+				Dialer:   &net.Dialer{Timeout: time.Second * 30},
+				Healthy:  true,
+				IsDirect: true,
 			})
 			continue
 		}
@@ -89,9 +91,10 @@ func NewSimpleDialer(proxyList string) (*SimpleDialer, error) {
 		}
 
 		sd.nodes = append(sd.nodes, &ProxyNode{
-			URL:     parsed,
-			Dialer:  dialer,
-			Healthy: true,
+			URL:      parsed,
+			Dialer:   dialer,
+			Healthy:  true,
+			IsDirect: false,
 		})
 
 		// 第一个节点作为当前节点
