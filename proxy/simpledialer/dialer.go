@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"fmt"
+
 	"golang.org/x/net/proxy"
 )
 
@@ -152,8 +154,13 @@ func (sd *SimpleDialer) DialContext(ctx context.Context, network, address string
 
 		conn, err := sd.dialViaNode(ctx, node, network, address)
 		if err == nil {
+			// 记录切换前的节点
+			previousNode := sd.nodes[sd.current]
 			sd.recordSuccess(node)
 			sd.switchToNode(node)
+			// 故障切换日志
+			fmt.Printf("[SimpleDialer] Failover: switched from %s to %s\n",
+				previousNode.URL.String(), node.URL.String())
 			return conn, nil
 		}
 		sd.recordFailure(node)
@@ -243,6 +250,7 @@ func (sd *SimpleDialer) healthChecker() {
 		sd.mu.RLock()
 		nodes := make([]*ProxyNode, len(sd.nodes))
 		copy(nodes, sd.nodes)
+		currentIndex := sd.current
 		sd.mu.RUnlock()
 
 		for _, node := range nodes {
@@ -250,8 +258,27 @@ func (sd *SimpleDialer) healthChecker() {
 				continue
 			}
 
+			// DIRECT 节点不需要健康检查
+			if node.IsDirect {
+				continue
+			}
+
 			if sd.checkNode(node) {
 				sd.recordSuccess(node)
+
+				// 智能回切：如果恢复的节点优先级更高，则切换回去
+				sd.mu.RLock()
+				shouldSwitch := node.Index < currentIndex && !sd.nodes[currentIndex].Healthy
+				sd.mu.RUnlock()
+
+				if shouldSwitch {
+					sd.switchToNode(node)
+					fmt.Printf("[SimpleDialer] Smart recovery: switched back to higher priority proxy %s\n",
+						node.URL.String())
+				} else {
+					fmt.Printf("[SimpleDialer] Health check: proxy %s recovered\n",
+						node.URL.String())
+				}
 			}
 		}
 	}
