@@ -341,7 +341,7 @@ jobs:
             - name: Docker Hub description
               uses: peter-evans/dockerhub-description@v3
               with:
-                  username: ${{ secrets.DOCKER_USERNAME }}
+                  username: ${{ vars.DOCKER_USERNAME }}
                   password: ${{ secrets.DOCKER_PASSWORD }}
                   repository: yannstor/anytls-go
                   short-description: "High-performance TLS proxy server with enterprise-grade proxy features"
