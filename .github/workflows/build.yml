@@ -28,9 +28,11 @@ jobs:
                   go-version: ${{ env.GO_VERSION }}
 
             - name: Cache Go modules
-              uses: actions/cache@v3
+              uses: actions/cache@v4
               with:
-                  path: ~/go/pkg/mod
+                  path: |
+                      ~/.cache/go-build
+                      ~/go/pkg/mod
                   key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
                   restore-keys: |
                       ${{ runner.os }}-go-
@@ -95,8 +97,11 @@ jobs:
                     echo "VERSION=dev-${GITHUB_SHA:0:8}" >> $GITHUB_ENV
                   fi
 
+            - name: Clean go mod cache
+              run: go clean -modcache || true
+
             - name: Build binary
-              timeout-minutes: 5
+              timeout-minutes: 10
               run: |
                   export CGO_ENABLED=0
                   export GOOS=${{ matrix.goos }}
@@ -112,15 +117,26 @@ jobs:
                              -X main.GitCommit=${{ env.GIT_COMMIT }} \
                              -s -w"
 
+                  echo "Building for ${{ matrix.goos }}/${{ matrix.goarch }}..."
+
                   # 构建服务器
-                  go build -ldflags "$LDFLAGS" -o "bin/${BINARY_NAME}" ./cmd/server
+                  go build -v -ldflags "$LDFLAGS" -o "bin/${BINARY_NAME}" ./cmd/server || {
+                    echo "Server build failed for ${{ matrix.goos }}/${{ matrix.goarch }}"
+                    exit 1
+                  }
 
                   # 构建客户端
                   CLIENT_BINARY_NAME="anytls-client-${{ matrix.goos }}-${{ matrix.goarch }}"
                   if [ "${{ matrix.goos }}" = "windows" ]; then
                     CLIENT_BINARY_NAME="${CLIENT_BINARY_NAME}.exe"
                   fi
-                  go build -ldflags "$LDFLAGS" -o "bin/${CLIENT_BINARY_NAME}" ./cmd/client
+                  go build -v -ldflags "$LDFLAGS" -o "bin/${CLIENT_BINARY_NAME}" ./cmd/client || {
+                    echo "Client build failed for ${{ matrix.goos }}/${{ matrix.goarch }}"
+                    exit 1
+                  }
+
+                  echo "Build completed for ${{ matrix.goos }}/${{ matrix.goarch }}"
+                  ls -la bin/
 
             - name: Upload artifacts
               uses: actions/upload-artifact@v4
@@ -153,28 +169,56 @@ jobs:
             - name: Prepare release assets
               run: |
                   mkdir -p release
+                  echo "Available artifacts:"
+                  ls -la artifacts/
+                  echo "Copying artifacts to release directory..."
                   cp -r artifacts/*/ release/ || true
+                  echo "Release directory contents:"
+                  ls -la release/
 
             - name: Generate archives in parallel
               run: |
                   cd release
+                  echo "Current directory: $(pwd)"
+                  echo "Directories found:"
+                  find . -maxdepth 1 -type d
+                  echo "Files found:"
+                  find . -maxdepth 1 -type f
 
-                  # 使用并行创建压缩包
+                  # 创建 tar.gz 包（Unix 系统）
                   for dir in anytls-linux-* anytls-darwin-* anytls-freebsd-*; do
                     if [ -d "$dir" ]; then
                       echo "Creating tar.gz for $dir"
-                      tar -czf "${dir}.tar.gz" -C "$dir" &
+                      echo "Contents of $dir:"
+                      ls -la "$dir"
+                      tar -czf "${dir}.tar.gz" -C "$dir" . || {
+                        echo "Failed to create tar.gz for $dir"
+                        exit 1
+                      }
+                      echo "Created ${dir}.tar.gz"
+                    else
+                      echo "Directory $dir not found"
                     fi
                   done
 
+                  # 创建 zip 包（Windows）
                   for dir in anytls-windows-*; do
                     if [ -d "$dir" ]; then
                       echo "Creating zip for $dir"
-                      (cd "$dir" && zip -r "../${dir}.zip" .) &
+                      echo "Contents of $dir:"
+                      ls -la "$dir"
+                      (cd "$dir" && zip -r "../${dir}.zip" .) || {
+                        echo "Failed to create zip for $dir"
+                        exit 1
+                      }
+                      echo "Created ${dir}.zip"
+                    else
+                      echo "Directory $dir not found"
                     fi
                   done
 
-                  wait
+                  echo "Final release directory:"
+                  ls -la
 
             - name: Generate SHA256 checksums
               run: |
