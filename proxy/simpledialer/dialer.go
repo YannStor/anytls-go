@@ -104,8 +104,11 @@ func NewSimpleDialer(proxyList string) (*SimpleDialer, error) {
 		return nil, fmt.Errorf("no valid proxy nodes")
 	}
 
-	// 启动健康检查
-	go sd.healthChecker()
+	// 只有在多个代理或包含 DIRECT 时才启动健康检查
+	// 单个代理且无回退时，健康检查没有意义
+	if sd.shouldEnableHealthCheck() {
+		go sd.healthChecker()
+	}
 
 	return sd, nil
 }
@@ -207,6 +210,25 @@ func (sd *SimpleDialer) recordFailure(node *ProxyNode) {
 	if node.Fails >= 3 {
 		node.Healthy = false
 	}
+}
+
+// shouldEnableHealthCheck 判断是否应该启用健康检查
+func (sd *SimpleDialer) shouldEnableHealthCheck() bool {
+	sd.mu.RLock()
+	defer sd.mu.RUnlock()
+
+	// 如果只有一个代理节点
+	if len(sd.nodes) == 1 {
+		// 检查是否为 DIRECT（直连不需要健康检查）
+		if sd.nodes[0].IsDirect {
+			return false
+		}
+		// 单个非 DIRECT 代理，没有备选项，不需要健康检查
+		return false
+	}
+
+	// 多个代理或包含 DIRECT 时，需要健康检查
+	return true
 }
 
 // healthChecker 健康检查器

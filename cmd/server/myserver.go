@@ -30,8 +30,17 @@ func NewMyServer(tlsConfig *tls.Config, dialURL string, dialFallback bool, healt
 
 		logrus.Infoln("[Server] Using outbound proxy:", dialURL)
 		logrus.Infoln("[Server] Proxy list:", proxyDialer.GetCurrentProxy())
+
+		// 显示健康检查状态
+		proxyCount := len(strings.Split(strings.TrimSpace(dialURL), ","))
+		if proxyCount == 1 && !strings.Contains(strings.ToUpper(dialURL), "DIRECT") {
+			logrus.Infoln("[Server] Health check: disabled (single proxy without fallback)")
+		} else {
+			logrus.Infoln("[Server] Health check: enabled")
+		}
 	} else {
 		logrus.Infoln("[Server] Using direct outbound connection")
+		logrus.Infoln("[Server] Health check: disabled (direct connection)")
 	}
 
 	return s
