@@ -30,7 +30,7 @@ func proxyOutboundTCP(ctx context.Context, conn net.Conn, destination M.Socksadd
 			return E.Errors(err, N.ReportHandshakeFailure(conn, err))
 		}
 		logrus.Debugln("Using TCP proxy for:", destination.String(), "via", proxyDialer.GetCurrentProxy())
-	} else if dialer, ok := dialerInterface.(net.Dialer); ok {
+	} else if dialer, ok := dialerInterface.(*net.Dialer); ok {
 		// 使用系统拨号器
 		outboundConn, err = dialer.DialContext(ctx, "tcp", destination.String())
 		if err != nil {
