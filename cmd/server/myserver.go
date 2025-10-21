@@ -33,8 +33,12 @@ func NewMyServer(tlsConfig *tls.Config, dialURL string, dialFallback bool, healt
 
 		// 显示健康检查状态
 		proxyCount := len(strings.Split(strings.TrimSpace(dialURL), ","))
-		if proxyCount == 1 && !strings.Contains(strings.ToUpper(dialURL), "DIRECT") {
-			logrus.Infoln("[Server] Health check: disabled (single proxy without fallback)")
+		if proxyCount == 1 {
+			if strings.Contains(strings.ToUpper(dialURL), "DIRECT") {
+				logrus.Infoln("[Server] Health check: disabled (single DIRECT proxy)")
+			} else {
+				logrus.Infoln("[Server] Health check: disabled (single proxy without fallback)")
+			}
 		} else {
 			logrus.Infoln("[Server] Health check: enabled")
 		}
